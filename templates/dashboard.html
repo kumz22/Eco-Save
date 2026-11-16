@@ -1,0 +1,185 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard | EcoSave{% endblock %}
+
+{% block content %}
+  <div class="page-header">
+    <h2>Dashboard</h2>
+    <p>Monthly electricity performance and your latest energy-saving progress.</p>
+  </div>
+
+  <div class="metric-grid">
+    <div class="stat-card">
+      <span class="label">Current month</span>
+      <p class="value">{{ metrics.current_total }} kWh</p>
+      <span class="trend"><i class="bi bi-calendar3"></i> {{ metrics.current_month_label }}</span>
+    </div>
+    <div class="stat-card">
+      <span class="label">{{ 'Previous month' if metrics.comparison_available else 'Previous recorded month' }}</span>
+      <p class="value">{{ metrics.previous_total }} kWh</p>
+      <span class="trend"><i class="bi bi-arrow-left-right"></i> {{ metrics.previous_month_label }}</span>
+    </div>
+    <div class="stat-card">
+      <span class="label">Month-to-month reduction</span>
+      <p class="value">{{ metrics.consumption_saved_kwh }} kWh</p>
+      <span class="trend"><i class="bi bi-lightning-charge-fill"></i> Compared with previous record</span>
+    </div>
+    <div class="stat-card">
+      <span class="label">Estimated CO₂</span>
+      <p class="value">{{ metrics.emissions_kg }} kg</p>
+      <span class="trend"><i class="bi bi-cloud-arrow-up-fill"></i> Estimate only</span>
+    </div>
+  </div>
+
+  <div class="metric-grid">
+    <div class="stat-card">
+      <span class="label">Avoided emissions</span>
+      <p class="value">{{ metrics.emissions_avoided_kg }} kg</p>
+      <span class="trend"><i class="bi bi-check-circle-fill"></i> Based on savings</span>
+    </div>
+    <div class="stat-card">
+      <span class="label">Completed actions</span>
+      <p class="value">{{ metrics.completed_actions }}</p>
+      <span class="trend"><i class="bi bi-stars"></i> Energy-saving tasks</span>
+    </div>
+    <div class="stat-card">
+      <span class="label">Eco points</span>
+      <p class="value">{{ metrics.eco_points }}</p>
+      <span class="trend"><i class="bi bi-award-fill"></i> Reward points</span>
+    </div>
+    <div class="stat-card">
+      <span class="label">Monthly change</span>
+      <p class="value">{{ metrics.monthly_change_percent }}%</p>
+      <span class="trend"><i class="bi bi-arrow-up-right"></i> Current vs previous</span>
+    </div>
+  </div>
+
+  <div class="row g-4 chart-wrap">
+    <div class="col-lg-8">
+      <div class="panel">
+        <h5>Electricity consumption trend</h5>
+        <div class="chart-container">
+          <canvas id="consumptionChart"></canvas>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="panel">
+        <h5>Carbon estimate trend</h5>
+        <div class="chart-container">
+          <canvas id="emissionChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4 section-box">
+    <div class="col-lg-7">
+      <div class="panel">
+        <h5>Priority recommendations</h5>
+        <ul class="summary-list">
+          {% for rec in recommendations[:4] %}
+            <li>
+              <strong>{{ rec.title }}</strong><br>
+              <small>{{ rec.category }} · {{ rec.difficulty }} · Status: {{ rec.status or 'pending' }}</small>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+    <div class="col-lg-5">
+      <div class="panel">
+        <h5>Insights</h5>
+        {% if metrics.comparison_available %}
+          <p>
+            {% if metrics.current_total > metrics.previous_total %}
+              Your electricity consumption increased by {{ metrics.monthly_change_percent }}% compared with the previous month.
+            {% else %}
+              Your electricity consumption decreased by {{ (-1 * metrics.monthly_change_percent)|round(2) }}% compared with the previous month.
+            {% endif %}
+          </p>
+        {% else %}
+          <p>Comparable consecutive monthly records are needed to measure a monthly reduction.</p>
+        {% endif %}
+        <p>Consumption was {{ metrics.consumption_saved_kwh }} kWh lower than the previous record; the related estimated emissions difference is {{ metrics.emissions_avoided_kg }} kg CO₂e.</p>
+        <ul class="summary-list">
+          <li>Highest: {{ analysis_data.highest }} kWh in {{ analysis_data.highest_month }}</li>
+          <li>Lowest: {{ analysis_data.lowest }} kWh in {{ analysis_data.lowest_month }}</li>
+          <li>Average monthly usage: {{ analysis_data.average }} kWh</li>
+          <li>Total recorded: {{ analysis_data.total }} kWh</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  (() => {
+    const labels = {{ metrics.month_labels|tojson }};
+    const consumptionValues = {{ metrics.month_values|tojson }};
+    const factor = {{ factor }};
+
+    function initializeChart(canvasId, config) {
+      const canvas = document.getElementById(canvasId);
+      if (!canvas) return;
+
+      const existingChart = Chart.getChart(canvas);
+      if (existingChart) existingChart.destroy();
+
+      new Chart(canvas, config);
+    }
+
+    initializeChart('consumptionChart', {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'kWh',
+          data: consumptionValues,
+          borderColor: '#2e8b57',
+          backgroundColor: 'rgba(46, 139, 87, 0.15)',
+          tension: 0.35,
+          fill: true,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: true, position: 'bottom' },
+          tooltip: { callbacks: { label: context => `${context.dataset.label}: ${context.parsed.y.toFixed(2)} kWh` } }
+        },
+        scales: {
+          x: { title: { display: true, text: 'Month' } },
+          y: { beginAtZero: false, title: { display: true, text: 'Consumption (kWh)' } }
+        }
+      }
+    });
+
+    const emissionValues = consumptionValues.map(value => Number((value * factor).toFixed(2)));
+    initializeChart('emissionChart', {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Estimated CO₂ (kg)',
+          data: emissionValues,
+          backgroundColor: '#7dcc9a'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: true, position: 'bottom' },
+          tooltip: { callbacks: { label: context => `${context.dataset.label}: ${context.parsed.y.toFixed(2)} kg CO₂e` } }
+        },
+        scales: {
+          x: { title: { display: true, text: 'Month' } },
+          y: { beginAtZero: true, title: { display: true, text: 'Estimated emissions (kg CO₂e)' } }
+        }
+      }
+    });
+  })();
+</script>
+{% endblock %}

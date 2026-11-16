@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+{% block title %}Savings Tracker | EcoSave{% endblock %}
+
+{% block content %}
+  <div class="page-header">
+    <h2>Savings tracker</h2>
+    <p>Potential savings are recommendation estimates; reported savings come from completed actions; consumption decreases are calculated from consecutive monthly records.</p>
+  </div>
+
+  <div class="metric-grid">
+    <div class="stat-card">
+      <span class="label">Potential recommendation savings</span>
+      <p class="value">{{ potential_savings }} kWh</p>
+      <span class="trend">Estimated opportunity, not achieved savings</span>
+    </div>
+    <div class="stat-card">
+      <span class="label">User-reported savings</span>
+      <p class="value">{{ total_reported }} kWh</p>
+    </div>
+    <div class="stat-card">
+      <span class="label">Estimated action savings</span>
+      <p class="value">{{ total_estimated }} kWh</p>
+      <span class="trend">{{ estimated_emissions_avoided }} kg CO₂e estimated</span>
+    </div>
+    <div class="stat-card">
+      <span class="label">Positive monthly decreases</span>
+      <p class="value">{{ measured_savings }} kWh</p>
+      <span class="trend">Record comparison; {{ measured_emissions }} kg CO₂e estimated</span>
+    </div>
+  </div>
+  <div class="metric-grid">
+    <div class="stat-card">
+      <span class="label">Completed actions</span>
+      <p class="value">{{ completed_rows|length }}</p>
+    </div>
+    <div class="stat-card">
+      <span class="label">CO₂ from reported savings</span>
+      <p class="value">{{ emissions_avoided }} kg</p>
+      <span class="trend">Estimate using configured factor</span>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-lg-7">
+      <div class="panel">
+        <h5>Completed recommendation actions</h5>
+        <div class="table-wrap mt-3">
+          <table class="table table-hover">
+            <thead>
+              <tr>
+                <th>Recommendation</th>
+                <th>Recorded saving</th>
+                <th>Classification</th>
+                <th>Completed</th>
+                <th>Category</th>
+                <th>Note</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% if completed_rows %}
+                {% for row in completed_rows %}
+                  <tr>
+                    <td>{{ row.title }}</td>
+                    <td>{{ row.energy_saving_kwh }} kWh</td>
+                    <td>{{ row.saving_type|replace('_', ' ')|title }}</td>
+                    <td>{{ row.completed_at[:10] if row.completed_at else '—' }}</td>
+                    <td>{{ row.category }}</td>
+                    <td>{% if row.note and 'DEMO SIMULATED:' not in row.note %}{{ row.note }}{% else %}—{% endif %}</td>
+                  </tr>
+                {% endfor %}
+              {% else %}
+                <tr>
+                  <td colspan="6" class="text-center text-muted">No completed actions yet. Complete a recommendation to start tracking reported savings.</td>
+                </tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-5">
+      <div class="panel">
+        <h5>Monthly savings history</h5>
+        {% if monthly_savings %}
+          <ul class="summary-list mt-3">
+            {% for item in monthly_savings %}
+              <li>
+                {{ item.label }} — consumption
+                {% if item.difference_kwh > 0 %}
+                  reduced by {{ item.difference_kwh }} kWh
+                {% elif item.difference_kwh < 0 %}
+                  increased by {{ item.difference_kwh|abs }} kWh
+                {% else %}
+                  was unchanged
+                {% endif %}
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p>No consecutive monthly records are available for comparison.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+{% endblock %}

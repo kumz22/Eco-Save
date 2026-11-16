@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% block title %}Profile & Settings | EcoSave{% endblock %}
+
+{% block content %}
+  <div class="page-header">
+    <h2>Profile and settings</h2>
+    <p>Update your account details, configure your preferred unit, and adjust the carbon calculation factor.</p>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-lg-6">
+      <div class="form-card">
+        <h5>Profile details</h5>
+        <form method="post">
+          <div class="mb-3">
+            <label class="form-label">Display name</label>
+            <input type="text" class="form-control" name="name" value="{{ user.name }}">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Username</label>
+            <input type="text" class="form-control" value="{{ user.username }}" disabled>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Email</label>
+            <input type="email" class="form-control" value="{{ user.email }}" disabled>
+          </div>
+          <button type="submit" class="btn btn-success">Update profile</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="col-lg-6">
+      <div class="form-card">
+        <h5>Security and preferences</h5>
+        <form method="post">
+          <div class="mb-3">
+            <label class="form-label">New password</label>
+            <input type="password" class="form-control" name="new_password" placeholder="Leave blank to keep current password">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Preferred unit</label>
+            <select class="form-select" name="preferred_unit">
+              <option value="kWh" {% if preferred_unit == 'kWh' %}selected{% endif %}>kWh</option>
+              <option value="Units" {% if preferred_unit == 'Units' %}selected{% endif %}>Units</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Emission factor (kg CO₂e/kWh)</label>
+            <input type="number" step="0.0001" min="0.0001" class="form-control" name="emission_factor" value="{{ current_factor }}">
+            <small class="form-text">This configurable value is a placeholder until you verify and cite the appropriate India-specific source and publication year.</small>
+          </div>
+          <button type="submit" class="btn btn-success">Save preferences</button>
+        </form>
+      </div>
+    </div>
+  </div>
+{% endblock %}

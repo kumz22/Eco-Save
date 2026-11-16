@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+{% block title %}Reports | EcoSave{% endblock %}
+
+{% block content %}
+  <div class="page-header">
+    <h2>Reports and history</h2>
+    <p>Review consumption and estimated emissions from records, plus separately classified action savings and progress.</p>
+  </div>
+
+  <div class="metric-grid">
+    <div class="stat-card"><span class="label">Total consumption</span><p class="value">{{ summary.total_consumption }} kWh</p></div>
+    <div class="stat-card"><span class="label">Estimated emissions</span><p class="value">{{ summary.total_emissions }} kg</p></div>
+    <div class="stat-card"><span class="label">Completed actions</span><p class="value">{{ summary.completed_actions }}</p></div>
+    <div class="stat-card"><span class="label">Reported savings</span><p class="value">{{ summary.reported_savings }} kWh</p></div>
+    <div class="stat-card"><span class="label">Estimated action savings</span><p class="value">{{ summary.estimated_savings }} kWh</p></div>
+    <div class="stat-card"><span class="label">Monthly decreases in records</span><p class="value">{{ summary.measured_reduction }} kWh</p></div>
+  </div>
+
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h5>Consumption & savings overview</h5>
+    <a href="{{ url_for('download_reports_csv') }}" class="btn btn-success">Download CSV</a>
+  </div>
+
+  <div class="panel">
+    <div class="table-wrap">
+      <table class="table table-hover align-middle">
+        <thead>
+          <tr>
+            <th>Month</th>
+            <th>Consumption</th>
+            <th>Estimated CO₂</th>
+            <th>Decrease vs previous month</th>
+            <th>Bill</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if records %}
+            {% for record in records %}
+              <tr>
+                <td>{{ '%02d' % record.record_month }}/{{ record.record_year }}</td>
+                <td>{{ record.consumption_kwh }} kWh</td>
+                <td>{{ record.emissions_kg }} kg CO₂e</td>
+                <td>{% if record.measured_reduction_kwh %}{{ record.measured_reduction_kwh }} kWh{% else %}—{% endif %}</td>
+                <td>{% if record.bill_inr %}₹{{ '%.2f'|format(record.bill_inr) }}{% else %}—{% endif %}</td>
+                <td>{% if record.notes and 'DEMO SIMULATED:' not in record.notes %}{{ record.notes }}{% else %}—{% endif %}</td>
+              </tr>
+            {% endfor %}
+          {% else %}
+            <tr><td colspan="6" class="empty-state">No monthly reports yet. Add a consumption record to build your report.</td></tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="mt-4 panel">
+    <h5>Completed recommendations</h5>
+    <div class="table-wrap mt-3">
+      <table class="table table-hover">
+        <thead>
+          <tr>
+            <th>Action</th>
+            <th>Completion date</th>
+            <th>Recorded saving</th>
+            <th>Classification</th>
+            <th>Estimated CO₂ avoided</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if completed_rows %}
+            {% for row in completed_rows %}
+              <tr>
+                <td>{{ row.title }}</td>
+                <td>{{ row.completed_at[:10] if row.completed_at else '—' }}</td>
+                <td>{{ row.energy_saving_kwh }} kWh</td>
+                <td>{{ row.saving_type|replace('_', ' ')|title }}</td>
+                <td>{{ (row.energy_saving_kwh * factor)|round(2) }} kg CO₂e*</td>
+              </tr>
+            {% endfor %}
+          {% else %}
+            <tr><td colspan="5" class="empty-state">No completed actions yet.</td></tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <p class="small text-muted mt-2">*Action CO₂ avoided is an estimate using the configured {{ factor }} kg CO₂e/kWh factor; consumption-based reductions are reported separately in Savings Tracker.</p>
+{% endblock %}

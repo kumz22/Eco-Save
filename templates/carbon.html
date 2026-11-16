@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+{% block title %}Carbon Calculator | EcoSave{% endblock %}
+
+{% block content %}
+  <div class="page-header">
+    <h2>Carbon emission calculator</h2>
+    <p>Estimated emissions use your recorded electricity consumption and the configurable factor shown below. They are not direct measurements.</p>
+  </div>
+
+  <div class="metric-grid">
+    <div class="stat-card">
+      <span class="label">12-month emissions estimate</span>
+      {% if annual_emissions is not none %}
+        <p class="value">{{ annual_emissions }} kg</p>
+        <span class="trend">Estimated kg CO₂e</span>
+      {% else %}
+        <p class="value">—</p>
+        <span class="trend">Requires 12 consecutive monthly records</span>
+      {% endif %}
+    </div>
+    <div class="stat-card">
+      <span class="label">Estimated avoided</span>
+      <p class="value">{{ estimated_avoided_kg }} kg</p>
+      <span class="trend">From monthly measured reductions</span>
+    </div>
+    <div class="stat-card">
+      <span class="label">Reported-action CO₂ estimate</span>
+      <p class="value">{{ reported_avoided_kg }} kg</p>
+      <span class="trend">Based on user-reported action savings</span>
+    </div>
+    <div class="stat-card">
+      <span class="label">Estimated-action CO₂ estimate</span>
+      <p class="value">{{ estimated_action_avoided_kg }} kg</p>
+      <span class="trend">Based on estimated action savings</span>
+    </div>
+    <div class="stat-card">
+      <span class="label">Configured grid factor</span>
+      <p class="value">{{ factor }}</p>
+      <span class="trend">kg CO₂e/kWh</span>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-lg-6">
+      <div class="form-card">
+        <h5>Calculation formula</h5>
+        <p class="mb-3">CO₂ emissions (kg CO₂e) = Electricity consumption (kWh) × Grid emission factor (kg CO₂e/kWh)</p>
+        <div class="alert alert-light">
+          <strong>Current grid factor:</strong> {{ factor }} kg CO₂e/kWh<br>
+          <small class="text-muted">This configurable factor is a placeholder, not a verified official current India grid factor. Verify the applicable CEA or regional source and its publication year before using these results for formal reporting.</small>
+        </div>
+        <div class="mt-3">
+          <label class="form-label">Estimate a value</label>
+          <input type="number" step="0.01" min="0" class="form-control" id="kwhInput" value="{{ monthly_emissions[-1].consumption_kwh if monthly_emissions else 100 }}">
+        </div>
+        <button class="btn btn-success mt-3" id="calculateBtn" type="button">Calculate</button>
+        <div class="mt-3 p-3 bg-light rounded">
+          <strong id="carbonResult">Estimated emissions</strong>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-6">
+      <div class="panel">
+        <h5>Important assumptions</h5>
+        <ul class="summary-list">
+          <li>Electricity consumption is recorded in kWh.</li>
+          <li>Formula: kWh × {{ factor }} kg CO₂e/kWh = estimated kg CO₂e.</li>
+          <li>Grid factors vary by year and regional supply mix.</li>
+          <li>The configured value is a placeholder, not a verified official current India factor.</li>
+          <li>Annual estimate is shown only when 12 consecutive monthly records are available.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel section-box">
+    <h5>Monthly estimated emissions</h5>
+    <div class="table-wrap mt-3">
+      <table class="table table-hover align-middle">
+        <thead><tr><th>Month</th><th>Consumption</th><th>Calculation</th><th>Estimated emissions</th></tr></thead>
+        <tbody>
+          {% for item in monthly_emissions %}
+            <tr>
+              <td>{{ item.label }}</td>
+              <td>{{ item.consumption_kwh }} kWh</td>
+              <td>{{ item.consumption_kwh }} × {{ factor }}</td>
+              <td>{{ item.emissions_kg }} kg CO₂e</td>
+            </tr>
+          {% else %}
+            <tr><td colspan="4" class="empty-state">Add consumption records to see monthly estimates.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const factor = {{ factor }};
+  const kwhInput = document.getElementById('kwhInput');
+  const result = document.getElementById('carbonResult');
+
+  function calculateAndRender() {
+    const kwh = Number(kwhInput.value || 0);
+    const emission = kwh * factor;
+    result.textContent = `Estimated emissions: ${emission.toFixed(2)} kg CO₂e`;
+  }
+
+  calculateAndRender();
+  document.getElementById('calculateBtn').addEventListener('click', calculateAndRender);
+  kwhInput.addEventListener('input', calculateAndRender);
+</script>
+{% endblock %}

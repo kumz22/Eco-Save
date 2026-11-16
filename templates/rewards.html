@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+{% block title %}Rewards | EcoSave{% endblock %}
+
+{% block content %}
+  <div class="page-header">
+    <h2>Eco points and rewards</h2>
+    <p>Earn points by completing practical actions that cut waste and improve your energy habits.</p>
+  </div>
+
+  <div class="metric-grid">
+    <div class="stat-card">
+      <span class="label">Total eco points</span>
+      <p class="value">{{ details.total_points }}</p>
+    </div>
+    <div class="stat-card">
+      <span class="label">Current level</span>
+      <p class="value">{{ details.level }}</p>
+    </div>
+    <div class="stat-card">
+      <span class="label">Completed actions</span>
+      <p class="value">{{ details.completed_count }}</p>
+    </div>
+    <div class="stat-card">
+      <span class="label">Next level progress</span>
+      <p class="value">{{ details.progress }}%</p>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-lg-7">
+      <div class="panel">
+        <h5>Progress toward next milestone</h5>
+        <div class="progress mt-3">
+          <div class="progress-bar bg-success" role="progressbar" style="width: {{ details.progress }}%"></div>
+        </div>
+        {% if details.next_level %}
+          <p class="mt-3 mb-0">You need {{ details.next_level - details.total_points }} more points to reach the next level.</p>
+        {% else %}
+          <p class="mt-3 mb-0">You have reached the highest achievement level. Keep tracking sustainable habits!</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="col-lg-5">
+      <div class="panel">
+        <h5>Achievement badges</h5>
+        <ul class="summary-list mt-3">
+          <li><span class="badge-pill {% if not details.beginner_earned %}badge-locked{% endif %}">Beginner - {{ 'Earned' if details.beginner_earned else 'Locked' }}</span> Complete an energy-saving action.</li>
+          <li><span class="badge-pill {% if not details.energy_saver_earned %}badge-locked{% endif %}">Energy Saver - {{ 'Earned' if details.energy_saver_earned else 'Locked' }}</span> Reach 50+ eco points.</li>
+          <li><span class="badge-pill {% if not details.eco_champion_earned %}badge-locked{% endif %}">Eco Champion - {{ 'Earned' if details.eco_champion_earned else 'Locked' }}</span> Reach 150+ eco points.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+{% endblock %}

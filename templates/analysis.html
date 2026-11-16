@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+{% block title %}Energy Analysis | EcoSave{% endblock %}
+
+{% block content %}
+  <div class="page-header">
+    <h2>Energy analysis</h2>
+    <p>Understand how your monthly usage is changing, identify trends, and highlight the months with the highest consumption.</p>
+  </div>
+
+  <div class="metric-grid">
+    <div class="stat-card">
+      <span class="label">Average monthly usage</span>
+      <p class="value">{{ data.average }} kWh</p>
+    </div>
+    <div class="stat-card">
+      <span class="label">Highest record</span>
+      <p class="value">{{ data.highest }} kWh</p>
+    </div>
+    <div class="stat-card">
+      <span class="label">Lowest record</span>
+      <p class="value">{{ data.lowest }} kWh</p>
+    </div>
+    <div class="stat-card">
+      <span class="label">Total recorded</span>
+      <p class="value">{{ data.total }} kWh</p>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-lg-8">
+      <div class="panel">
+        <h5>Consumption trend</h5>
+        <div class="chart-container">
+          <canvas id="analysisChart"></canvas>
+        </div>
+        <h5 class="mt-4">Estimated carbon emissions</h5>
+        <div class="chart-container">
+          <canvas id="analysisEmissionChart"></canvas>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="panel">
+        <h5>Insights</h5>
+        <p>{{ data.trend }}</p>
+        <p>Highest month: <strong>{{ data.highest_month }}</strong> ({{ data.highest }} kWh)</p>
+        <p>Lowest month: <strong>{{ data.lowest_month }}</strong> ({{ data.lowest }} kWh)</p>
+        <p>Recorded period: <strong>{{ data.total }} kWh</strong> total at an average of <strong>{{ data.average }} kWh/month</strong>.</p>
+        <h6>High-consumption months</h6>
+        <ul class="summary-list">
+          {% if data.high_consumption_months %}
+            {% for item in data.high_consumption_months %}
+              <li>{{ item.label }} — {{ item.value }} kWh</li>
+            {% endfor %}
+          {% else %}
+            <li>No data yet.</li>
+          {% endif %}
+        </ul>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  (() => {
+    function renderChart(canvasId, config) {
+      const canvas = document.getElementById(canvasId);
+      if (!canvas) return;
+      const existingChart = Chart.getChart(canvas);
+      if (existingChart) existingChart.destroy();
+      new Chart(canvas, config);
+    }
+
+    const labels = {{ data.month_labels|tojson }};
+    const consumption = {{ data.month_values|tojson }};
+    const emissions = {{ emission_values|tojson }};
+
+    const chartOptions = (unit, beginAtZero) => ({
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: true, position: 'bottom' },
+        tooltip: { callbacks: { label: context => `${context.dataset.label}: ${context.parsed.y.toFixed(2)} ${unit}` } }
+      },
+      scales: {
+        x: { title: { display: true, text: 'Month' } },
+        y: { beginAtZero, title: { display: true, text: unit } }
+      }
+    });
+
+    renderChart('analysisChart', {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          label: 'Monthly consumption',
+          data: consumption,
+          borderColor: '#1b4d3d',
+          backgroundColor: 'rgba(27, 77, 61, 0.12)',
+          fill: true,
+          tension: 0.35
+        }]
+      },
+      options: chartOptions('kWh', false)
+    });
+
+    renderChart('analysisEmissionChart', {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{
+          label: 'Estimated emissions',
+          data: emissions,
+          backgroundColor: '#7dcc9a'
+        }]
+      },
+      options: chartOptions('kg CO₂e', true)
+    });
+  })();
+</script>
+{% endblock %}
